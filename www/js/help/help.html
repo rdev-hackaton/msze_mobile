@@ -1,0 +1,38 @@
+<ion-view view-title="Pomoc">
+  <ion-content>
+    <ion-list>
+      <div class="item item-divider">
+        <p style="text-align:center;">Uwaga</p>
+      </div>
+      <div class="item item-text-wrap">
+        <p>Informacje w aplikacji odzwierciedlają dane udostępnione przez Archidiecezje, więc mogą wystąpić braki lub błędy.
+        Trwają prace mające na celu uzyskania danych w pełni zgodnych z rzeczywistością. Za niedogodności przepraszamy.</p>
+      </div>
+      <div class="item item-divider">
+        <p style="text-align:center;">Legenda mapy</p>
+      </div>
+      <ion-item>
+        <p><img ng-src="{{ churchIcon }}" /><span style="float:right;">W tym kościele dzisiaj jest msza.</span></p>
+      </ion-item>
+      <ion-item>
+        <p><img ng-src="{{ church2Icon }}" /><span style="float:right;">W tym kościele dzisiaj nie ma mszy.</span></p>
+      </ion-item>
+      <div class="item item-text-wrap">
+        <p>Kliknięcie ikony kościoła spowoduje pokazanie szczegółowych informacji o mszach w tym kościele.</p>
+      </div>
+      <div class="item item-divider">
+        <p style="text-align:center;">Najbliższe msze</p>
+      </div>
+      <div class="item item-text-wrap">
+        <p>W „Najbliższe msze“ wyświetlanych jest 20 najbliższych kościołów w porządku od najbliższego do najdalszego.
+        Podana godzina to czas najbliższej mszy. Kliknięcie w rekord przeniesie do kościoła na mapie.</p>
+      </div>
+      <!-- <div class="item item-divider"> -->
+        <!-- <p style="text-align:center;">Ustawienia</p> -->
+      <!-- </div> -->
+      <!-- <ion-item> -->
+        <!-- <p>Odległość kościołów nieograniczona</p> -->
+      <!-- </ion-item> -->
+    </ion-list>
+  </ion-content>
+</ion-view>

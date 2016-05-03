@@ -1,0 +1,39 @@
+<ion-view title="Msze Święte" id="main-ctrl" >
+  <ion-pane>
+    <ion-header-bar class="bar-stable">
+      <h1 class="title">Msze Święte</h1>
+    </ion-header-bar>
+    <ion-content overflow-scroll="true">
+      <div class="item item-divider">
+        <p>{{ weekday() }} <span style="float:right;">{{ showTime() }}</span></p>
+      </div>
+      <ng-map center="{{lat}}, {{lng}}" zoom="{{zoom}}" disable-default-u-i="true" data-tap-disabled="true">
+      </ng-map>
+      <div class="item item-divider" style="text-align:center;"><!-- ng-click="toggleGroup(displayChurches)">-->
+        <b>Najbliższe msze</b>
+      </div>
+      <ion-list><!-- ng-show="isGroupShown(displayChurches)">-->
+        <div class="item item-text-wrap" ng-hide="churches.length">
+        Brak mszy świętych dzisiejszego dnia.
+        </div>
+        <ion-item ng-repeat="church in churches | limitTo: 20" ng-click="center({{ church.id }})">
+          <div class="row" style="text-align: center;">
+            <p>{{ church.name }}</p>
+          </div>
+          <div class="row">
+            <div class="col">
+              <p>{{ church.todayMass.time }}</p>
+            </div>
+            <div class="col">
+              <p><span style="float:right;">{{ church.displayDistance }}</span></p>
+            </div>
+          </div>
+        </ion-item>
+      </ion-lst>
+      <!-- <div id="directionsPanel"></div> -->
+      <!-- <button ng-if="isStart && isEnd" class="button button-full button-balanced" type="submit"> -->
+        <!-- <i class="ion-map" style="font-size:24px;"></i> Nawiguj mnie do celu -->
+      <!-- </button> -->
+    </ion-content>
+  </ion-pane>
+</ion-view>

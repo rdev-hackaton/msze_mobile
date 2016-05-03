@@ -1,0 +1,11 @@
+{
+  "name": "Msze Święte",
+  "private": "true",
+  "devDependencies": {
+    "ionic": "driftyco/ionic-bower#1.2.4"
+  },
+  "dependencies": {
+    "ionic-timepicker": "~0.4.0",
+    "angular-local-storage": "~0.2.3"
+  }
+}
