@@ -16,6 +16,9 @@ angular.module('msze.main', [
 
     var myMarker;
 
+    var myLat;
+    var myLng;
+
     $scope.allChurches = [];
     $scope.churches = [];
     $scope.todayChurches = [];
@@ -64,24 +67,80 @@ angular.module('msze.main', [
         $ionicScrollDelegate.scrollTop();
     };
 
-    allJobs()
+    $scope.navigate = function (id) {
+        var target;
+        angular.forEach($scope.allChurches, function (church, idx) {
+            // console.log(church);
+            if (church.id.indexOf(id) > -1) {
+                target = church;
+            }
+        });
+        console.log("TARGET");
+        // console.log(target);
+        launchnavigator.navigate(target.address, null, function () {}, function (error) {});
+    };
+
+    $rootScope.$on('newDistance', function (event, val) {
+        console.log('newDistance');
+        $scope.boundary = val;
+        console.log($scope.boundary);
+        prepareMap();
+    });
+
+    $rootScope.$on('newTime', function (event, val) {
+        console.log('onNewTime');
+        if (val == 0) $scope.time = new Date();
+        else $scope.time = new Date(val);
+        console.log($scope.time);
+        prepareMap();
+    });
+
+    fromServices()
+    .then(function() {
+        return allJobs();
+    })
     .then(function () {
         $interval(function() {
             console.log('interval task');
-            return $q.all([
-                silentLocalize()
-                .then(getData),
-                SettingsData.getTime()
+            return localizeMe(false)
+            .then(function() {
+                return SettingsData.getTime()
                 .then(function(time) {
                     console.log(time);
                     $scope.time = time;
-                }),
-            ]);
+                });
+            })
+            .then(function() {
+                return getData(myLat, myLng, $scope.time);
+                // return prepareMap();
+            });
         }, 10000);
     });
 
+    function allJobs() {
+        console.log('allJobs');
+        localizeMe(true)
+        .then(function() {
+            $ionicLoading.hide();
+            $scope.lat = myLat;
+            $scope.lng = myLng;
+            return prepareMap();
+        })
+        .then(function () {
+            console.log('allJobs done');
+        });
+    };
+
     function fromServices() {
         return $q.all([
+            SettingsData.getLat()
+            .then(function(lat) {
+                $scope.lat = myLat = lat;
+            }),
+            SettingsData.getLng()
+            .then(function(lng) {
+                $scope.lng = myLng = lng;
+            }),
             NgMap.getMap()
             .then(function (map) {
                 myMarker = new google.maps.Marker({
@@ -103,39 +162,6 @@ angular.module('msze.main', [
             })
         ]);
     };
-
-    function allJobs() {
-        var defer = $q.defer();
-
-        console.log('allJobs');
-        fromServices()
-        .then(localizeMe)
-        .then(prepareMap)
-        .then(function () {
-            console.log('allJobs done');
-            // console.log($scope.churches);
-            // console.log($scope.time);
-            // console.log($scope.lat);
-            defer.resolve();
-        });
-
-        return defer.promise;
-    };
-
-    $rootScope.$on('newDistance', function (event, val) {
-        console.log('newDistance');
-        $scope.boundary = val;
-        console.log($scope.boundary);
-        prepareMap();
-    });
-
-    $rootScope.$on('newTime', function (event, val) {
-        console.log('onNewTime');
-        if (val == 0) $scope.time = new Date();
-        else $scope.time = new Date(val);
-        console.log($scope.time);
-        prepareMap();
-    });
 
     function generateMapMarkers() {
         var defer = $q.defer();
@@ -210,7 +236,7 @@ angular.module('msze.main', [
             // console.log(allMarkers);
             console.log('generateMapMarkers finished');
 
-            defer.resolve();
+            defer.resolve(allMarkers);
         });
 
         return defer.promise;
@@ -227,25 +253,6 @@ angular.module('msze.main', [
             result += val;
         });
         return result;
-    };
-
-    $scope.navigate = function (id) {
-        var target;
-        angular.forEach($scope.allChurches, function (church, idx) {
-            // console.log(church);
-            if (church.id.indexOf(id) > -1) {
-                target = church;
-            }
-        });
-        console.log("TARGET");
-        // console.log(target);
-        launchnavigator.navigate(
-            target.address,
-            null,
-            function () {
-            },
-            function (error) {
-            });
     };
 
     function closeIWindows() {
@@ -291,11 +298,9 @@ angular.module('msze.main', [
 
         console.log('clearMarkers');
         angular.forEach(allMarkers, function (m, idx) {
-            // console.log(m);
             m.setMap(null);
         });
         allMarkers = [];
-        $scope.churches = [];
 
         defer.resolve();
         console.log('clearMarkers succeeded');
@@ -303,21 +308,17 @@ angular.module('msze.main', [
     };
 
     function prepareMap() {
-        var defer = $q.defer();
         console.log('prepareMap');
-
-        clearMarkers()
-        .then(getData)
-        .then(generateMapMarkers)
-        // .then(function () {
-            // generateMapMarkers();
-        // })
-        .then(defer.resolve)
+        getData(myLat, myLng, $scope.time)
+        .then(function() {
+            return clearMarkers();
+        })
+        .then(function() {
+            return generateMapMarkers();
+        })
         .then(function () {
             console.log('prepareMap done');
         });
-
-        return defer.promise;
     };
 
     function getData() {
@@ -326,10 +327,11 @@ angular.module('msze.main', [
 
         // console.log($scope.lat);
         // console.log($scope.lng);
-        MainData.churchesAsync($scope.lat, $scope.lng, $scope.time)
+        MainData.churchesAsync(myLat, myLng, $scope.time)
         .then(function () {
             $scope.allChurches = MainData.getChurches();
             // console.log($scope.allChurches);
+            $scope.churches = [];
             angular.forEach($scope.allChurches, function (church, idx) {
                 // console.log(church.distance);
                 if (church.distance <= $scope.boundary && church.todayMass) {
@@ -342,7 +344,7 @@ angular.module('msze.main', [
             });
             // console.log($scope.churches);
             console.log('getData finished');
-            defer.resolve();
+            defer.resolve($scope.churches);
         },
         function (d) {
             console.log('Error'+JSON.stringify(d));
@@ -366,93 +368,67 @@ angular.module('msze.main', [
         ]);
     };
 
-    function silentLocalize() {
-        var defer = $q.defer();
-
-        console.log('silentLocalize');
-
-        navigator.geolocation.getCurrentPosition(function (position) {
-            NgMap.getMap()
-            .then(function (map) {
-                if (myMarker) {
-                    myMarker.setPosition(new google.maps.LatLng(position.coords.latitude, position.coords.longitude));
-                }
-                else {
-                    myMarker = new google.maps.Marker({
-                        title: "Twoja lokalizacja",
-                        position: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
-                        map: map,
-                        zoom: 16,
-                    });
-                }
-                console.log('silentLocalize succeeded');
-                defer.resolve();
-            });
-        },
-        function () {
-            console.log('silentLocalize failed');
-            defer.resolve();
-        },
-        {
-            maximumAge: 0,
-            timeout: 6000,
-            enableHighAccuracy: false
-        });
-        return defer.promise;
-    };
-
-    function localizeMe() {
+    function localizeMe(infoMode) {
         var defer = $q.defer();
 
         console.log('localizeMe');
-
         navigator.geolocation.getCurrentPosition(function (position) {
-            $ionicLoading.hide();
-            $scope.lat = position.coords.latitude;
-            $scope.lng = position.coords.longitude;
-            console.log($scope.lat);
-            console.log($scope.lng);
-            SettingsData.setLat(position.coords.latitude);
-            SettingsData.setLng(position.coords.longitude);
+            console.log('localizeMe succeeded');
+
+            if (infoMode) {
+                $ionicLoading.hide();
+            }
+
+            myLat = position.coords.latitude;
+            myLng = position.coords.longitude;
+            console.log(myLat);
+            console.log(myLng);
+            SettingsData.setLat(myLat);
+            SettingsData.setLng(myLng);
 
             NgMap.getMap()
             .then(function (map) {
                 if (myMarker) {
-                    myMarker.setPosition(new google.maps.LatLng(position.coords.latitude, position.coords.longitude));
+                    myMarker.setPosition(new google.maps.LatLng(myLat, myLng));
                 }
                 else {
                     myMarker = new google.maps.Marker({
                         title: "Twoja lokalizacja",
-                        position: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
+                        position: new google.maps.LatLng(myLat, myLng),
                         map: map,
                         zoom: 16,
                     });
                 }
-                console.log('localizeMe succeeded');
-                defer.resolve();
+                defer.resolve([myLat, myLng]);
             });
         },
         function () {
-            $ionicLoading.hide();
-            alertMe()
-            .then(NgMap.getMap())
-            .then(function (map) {
-                if (myMarker) {
-                    console.log('scope lat');
-                    console.log($scope.lat);
-                    myMarker.setPosition(new google.maps.LatLng($scope.lat, $scope.lng));
-                }
-                else {
-                    myMarker = new google.maps.Marker({
-                        title: "Twoja lokalizacja",
-                        position: new google.maps.LatLng($scope.lat, $scope.lng),
-                        map: map,
-                        zoom: 9,
+            console.log('localizeMe failed');
+
+            if (infoMode) {
+                $ionicLoading.hide();
+                alertMe()
+                .then(function () {
+                    NgMap.getMap()
+                    .then(function (map) {
+                        if (myMarker) {
+                            myMarker.setPosition(new google.maps.LatLng(myLat, myLng));
+                        }
+                        else {
+                            myMarker = new google.maps.Marker({
+                                title: "Twoja lokalizacja",
+                                position: new google.maps.LatLng(myLat, myLng),
+                                map: map,
+                                zoom: 9,
+                            });
+                        }
+                        defer.resolve([myLat, myLng]);
                     });
-                }
-                console.log('localizeMe failed');
-                defer.resolve();
-            });
+                });
+            }
+            else {
+                defer.resolve([myLat, myLng]);
+            }
         },
         {
             maximumAge: 0,
