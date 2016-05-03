@@ -7,7 +7,7 @@
       <div class="item item-divider">
         <p>{{ weekday() }} <span style="float:right;">{{ showTime() }}</span></p>
       </div>
-      <ng-map center="{{lat}}, {{lng}}" zoom="{{zoom}}" disable-default-u-i="true" data-tap-disabled="true">
+      <ng-map center="{{lat}}, {{lng}}" zoom="12" disable-default-u-i="true" data-tap-disabled="true" default-style="false">
       </ng-map>
       <div class="item item-divider" style="text-align:center;"><!-- ng-click="toggleGroup(displayChurches)">-->
         <b>Najbliższe msze</b>
@@ -16,7 +16,7 @@
         <div class="item item-text-wrap" ng-hide="churches.length">
         Brak mszy świętych dzisiejszego dnia.
         </div>
-        <ion-item ng-repeat="church in churches | limitTo: 20" ng-click="center({{ church.id }})">
+        <ion-item ng-repeat="(key, church) in churches | limitTo: 20" ng-click="center({{ key }})">
           <div class="row" style="text-align: center;">
             <p>{{ church.name }}</p>
           </div>

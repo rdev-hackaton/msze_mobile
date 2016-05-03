@@ -43,13 +43,8 @@ angular.module('msze.main', [
     // centering clicked church
     $scope.center = function (id) {
         var target;
-        var idxx;
-        angular.forEach($scope.churches, function (church, idx) {
-            if (church.id.indexOf(id) > -1) {
-                target = church;
-                idxx = idx;
-            }
-        });
+        target = $scope.churches[id];
+        idx = $scope.allChurches.indexOf(target);
         $scope.lat = target.location.lat;
         $scope.lng = target.location.lng;
         NgMap.getMap()
@@ -57,10 +52,10 @@ angular.module('msze.main', [
             map.setZoom(16);
             closeIWindows()
             .then(function () {
-                allInfowindows[idxx].open(map, allMarkers[idxx]);
+                allInfowindows[idx].open(map, allMarkers[idx]);
                 infowindows.push({
-                    iwindow: allInfowindows[idxx],
-                    marker: allMarkers[idxx]
+                    iwindow: allInfowindows[idx],
+                    marker: allMarkers[idx]
                 });
             });
         });
@@ -106,28 +101,34 @@ angular.module('msze.main', [
             .then(function() {
                 return SettingsData.getTime()
                 .then(function(time) {
+                    var defer = $q.defer();
                     console.log(time);
                     $scope.time = time;
+                    defer.resolve();
+                    return defer.promise;
                 });
             })
             .then(function() {
-                return getData(myLat, myLng, $scope.time);
-                // return prepareMap();
+                // return getData(myLat, myLng, $scope.time);
+                return prepareMap();
             });
         }, 10000);
     });
 
     function allJobs() {
         console.log('allJobs');
-        localizeMe(true)
+        return localizeMe(true)
         .then(function() {
-            $ionicLoading.hide();
             $scope.lat = myLat;
             $scope.lng = myLng;
             return prepareMap();
         })
         .then(function () {
+            var defer = $q.defer();
+            $ionicLoading.hide();
             console.log('allJobs done');
+            defer.resolve();
+            return defer.promise;
         });
     };
 
@@ -309,7 +310,7 @@ angular.module('msze.main', [
 
     function prepareMap() {
         console.log('prepareMap');
-        getData(myLat, myLng, $scope.time)
+        return getData(myLat, myLng, $scope.time)
         .then(function() {
             return clearMarkers();
         })
@@ -321,13 +322,13 @@ angular.module('msze.main', [
         });
     };
 
-    function getData() {
+    function getData(lat, lng, time) {
         var defer = $q.defer();
         console.log('getData');
 
         // console.log($scope.lat);
         // console.log($scope.lng);
-        MainData.churchesAsync(myLat, myLng, $scope.time)
+        MainData.churchesAsync(lat, lng, time)
         .then(function () {
             $scope.allChurches = MainData.getChurches();
             // console.log($scope.allChurches);
@@ -375,10 +376,6 @@ angular.module('msze.main', [
         navigator.geolocation.getCurrentPosition(function (position) {
             console.log('localizeMe succeeded');
 
-            if (infoMode) {
-                $ionicLoading.hide();
-            }
-
             myLat = position.coords.latitude;
             myLng = position.coords.longitude;
             console.log(myLat);
@@ -406,7 +403,6 @@ angular.module('msze.main', [
             console.log('localizeMe failed');
 
             if (infoMode) {
-                $ionicLoading.hide();
                 alertMe()
                 .then(function () {
                     NgMap.getMap()
@@ -419,7 +415,7 @@ angular.module('msze.main', [
                                 title: "Twoja lokalizacja",
                                 position: new google.maps.LatLng(myLat, myLng),
                                 map: map,
-                                zoom: 9,
+                                zoom: 12,
                             });
                         }
                         defer.resolve([myLat, myLng]);
